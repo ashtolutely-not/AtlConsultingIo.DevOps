@@ -1,0 +1,14 @@
+{
+  "ConnectionString": "",
+  "ContextName": "",
+  "ProjectDirectory" :  "",
+  "ContextOutDirectory": "",
+  "ContextNamespace": "",
+  "EntitiesOutDirectory": "",
+  "EntitiesNamespace": "",
+  "Schema": "dbo",
+  "UseExactNames": true,
+  "UsePluralizer": true,
+  "ExcludedTables": null,
+  "IncludeTableViews" :  false
+}

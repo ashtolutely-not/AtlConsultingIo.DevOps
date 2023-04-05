@@ -1,0 +1,30 @@
+{
+  "TargetAssemblyName": "",
+  "TargetSourceLocation": "",
+  "IgnoreDirectories": [],
+  "DirectoryConfigurations": [
+    {
+      "DirectoryName": "",
+      "NamespaceName": ""
+    },
+    {
+      "DirectoryName": "",
+      "NamespaceName": ""
+    },
+    {
+      "DirectoryName": "",
+      "NamespaceName": ""
+    },
+    {
+      "DirectoryName": "",
+      "NamespaceName": ""
+    },
+    {
+      "DirectoryName": "",
+      "NamespaceName": "",
+      "FileOverrides": {
+        "FileName" :  "NamespaceName"
+      }
+    }
+  ]
+}
