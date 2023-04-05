@@ -5,7 +5,7 @@
 
 .commit-msg
 _config/
-
+src/Locations/
 
 # User-specific files
 *.rsuser
