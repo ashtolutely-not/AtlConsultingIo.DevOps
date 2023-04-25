@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis.Text;
+﻿using AtlConsultingIo.DevOps;
+
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Options;
 
 using Newtonsoft.Json;
@@ -28,7 +30,7 @@ internal static class NamespaceUpdate
     }
     public static async Task Inspect( string directoryLocation , string assemblyName )
     {
-        string outFile = Path.Combine( DirectoryLocations.LocalOutputs.TestDirectory, $"{assemblyName}.Namespaces_{ TextUtils.DateTimeTag }.txt");
+        string outFile = Path.Combine( CommandParams.TestDirectoryPaths.TestDirectory, $"{assemblyName}.Namespaces_{ Utils.DateTimeTag }.txt");
 
         var sourceDir = new DirectoryInfo( directoryLocation );
         var srcFiles = sourceDir.GetFiles("*.cs", SearchOption.AllDirectories);
@@ -78,7 +80,7 @@ internal static class NamespaceUpdate
         var srcFiles = projectDir.GetFiles("*.cs", SearchOption.AllDirectories);
         if( !srcFiles.Any() ) return;
 
-        var backupDir = new DirectoryInfo( Path.Combine( DirectoryLocations.LocalOutputs.BackupDirectory, assemblyName.WithDateTagSuffix() ));
+        var backupDir = new DirectoryInfo( Path.Combine( CommandParams.TestDirectoryPaths.BackupDirectory, assemblyName.WithDateTagSuffix() ));
         if( !backupDir.Exists )
             backupDir.Create();
         

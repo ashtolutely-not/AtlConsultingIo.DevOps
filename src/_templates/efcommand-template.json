@@ -10,5 +10,9 @@
   "UseExactNames": true,
   "UsePluralizer": true,
   "ExcludedTables": null,
-  "IncludeTableViews" :  false
+  "IncludeTableViews": false,
+  "EntityNameAdjustments": {
+    "OldName": "NewName",
+    "": ""
+  }
 }

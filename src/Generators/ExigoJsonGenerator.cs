@@ -1,4 +1,6 @@
 ﻿
+using AtlConsultingIo.DevOps;
+
 using System.Text;
 
 namespace AtlConsultingIo.Generators;
@@ -16,7 +18,7 @@ internal static class ExigoJsonGenerator
 
     public static void InspectSourceFiles()
     {
-        var srcDirectory = new DirectoryInfo( DirectoryLocations.DecompiledExigoDllFiles );
+        var srcDirectory = new DirectoryInfo( CommandParams.ExigoClientSourcePath );
         var srcFiles = srcDirectory.GetFiles().ToList();
 
         var list = new List<string>();
@@ -43,7 +45,7 @@ internal static class ExigoJsonGenerator
                         Directory.CreateDirectory( OutPath( writeToProject ) ) :
                         new DirectoryInfo( OutPath( writeToProject ) );
 
-        var srcDirectory = new DirectoryInfo( DirectoryLocations.DecompiledExigoDllFiles );
+        var srcDirectory = new DirectoryInfo( CommandParams.ExigoClientSourcePath );
         var srcFiles = srcDirectory.GetFiles().ToList();
 
         InitializeNullableTypeNames( srcFiles );
@@ -119,7 +121,7 @@ internal static class ExigoJsonGenerator
             return Enumerable.Empty<RecordDeclarationSyntax>();
 
         _comp = CSharpCompilation.Create( "Default" )
-                                        .AddReferences( MetadataReference.CreateFromFile( FileLocations.ExigoDll ) )
+                                        .AddReferences( MetadataReference.CreateFromFile( CommandParams.FilePaths.ExigoDll ) )
                                         .AddSyntaxTrees( tree );
 
         SemanticModel model = _comp.GetSemanticModel( tree );
@@ -183,7 +185,7 @@ internal static class ExigoJsonGenerator
     }
     static RecordDeclarationSyntax ToRecordSyntax( this ClassDeclarationSyntax @class , SemanticModel model )
     {
-        var _cls = @class.AddBaseListTypes( SimpleBaseType( ParseName( SourceMetadata.JsonInterfaceIdentifier )) );
+        var _cls = @class.AddBaseListTypes( SimpleBaseType( ParseName( CommandParams.AtlCoreMetadata.JsonInterfaceIdentifier )) );
         var _rec = RecordDeclaration( Token( SyntaxKind.RecordKeyword ), _cls.Identifier)
                     .AddModifiers(Token(SyntaxKind.PublicKeyword))
                     .WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken))
@@ -270,7 +272,7 @@ internal static class ExigoJsonGenerator
         sb.AppendLine();
 
         sb.AppendLine( "using System.Data;" );
-        sb.AppendLine( $"namespace {SourceMetadata.ExigoModelsNamespace};" );
+        sb.AppendLine( $"namespace {CommandParams.AtlCoreMetadata.ExigoApiModelsNamespace};" );
 
         return sb;
     }
@@ -312,8 +314,8 @@ internal static class ExigoJsonGenerator
     }
     static string OutPath( bool writeToProject )
     => writeToProject ?
-        Path.Combine( DirectoryLocations.Projects.NamedClients , "Exigo" , "Models" ) :
-        Path.Combine( DirectoryLocations.LocalOutputs.TestDirectory , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
+        Path.Combine( CommandParams.ProjectDirectoryPaths.AtlExigoIntegration , "Api" , "Models" ) :
+        Path.Combine( CommandParams.TestDirectoryPaths.GeneratedClientModelsTest , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
 
     #endregion
 

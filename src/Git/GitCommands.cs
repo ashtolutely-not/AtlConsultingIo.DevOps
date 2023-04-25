@@ -4,20 +4,20 @@ using CliWrap.Buffered;
 using System.IO;
 
 namespace AtlConsultingIo.DevOps.CliCommands;
-internal static class GitCLI
+internal static class GitCommands
 {
-    public static async Task<BufferedCommandResult> PushCommit(ProjectDirectory project)
+    public static async Task<BufferedCommandResult> PushCommit(AtlProject project)
         => await Cli.Wrap("git")
-                    .WithWorkingDirectory(project.Path)
+                    .WithWorkingDirectory(project.PhysicalDirectory.FullName )
                     .WithArguments("push")
                     .ExecuteBufferedAsync();
-    public static async Task<BufferedCommandResult> AddCommitFiles(ProjectDirectory project)
+    public static async Task<BufferedCommandResult> AddCommitFiles(AtlProject project)
         => await Cli.Wrap("git")
-                    .WithWorkingDirectory(project.Path)
+                    .WithWorkingDirectory(project.PhysicalDirectory.FullName)
                     .WithArguments("add -A")
                     .ExecuteBufferedAsync();
 
-    public static async Task<BufferedCommandResult> AddCommit(ProjectDirectory projectDirectory, string? message, bool useCommitTemplate = true)
+    public static async Task<BufferedCommandResult> AddCommit(AtlProject projectDirectory, string? message, bool useCommitTemplate = true)
     {
         var templateFile = !useCommitTemplate || projectDirectory.GetCommitMessageFile() is null ? null : projectDirectory.GetCommitMessageFile();
 
@@ -26,25 +26,19 @@ internal static class GitCLI
             await CommitWithFile(projectDirectory, templateFile);
     }
 
-    private static async Task<BufferedCommandResult> CommitWithFile(ProjectDirectory project, FileInfo commitTemplate)
+    private static async Task<BufferedCommandResult> CommitWithFile(AtlProject project, FileInfo commitTemplate)
         => await Cli.Wrap("git")
-                    .WithWorkingDirectory(project.Path)
+                    .WithWorkingDirectory(project.PhysicalDirectory.FullName )
                     .WithArguments($"commit -F {commitTemplate.FullName}")
                     .ExecuteBufferedAsync();
 
-    private static async Task<BufferedCommandResult> CommitWithMessage(ProjectDirectory project, string message)
+    private static async Task<BufferedCommandResult> CommitWithMessage(AtlProject project, string message)
         => await Cli.Wrap("git")
-                    .WithWorkingDirectory(project.Path)
+                    .WithWorkingDirectory(project.PhysicalDirectory.FullName )
                     .WithArguments($"commit -m {message}")
                     .ExecuteBufferedAsync();
 
-    private static string GetGhPackagesToken()
-    {
-        var userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var path = Path.Combine(userDir, ".config", "ghtokens", ".packages-token");
 
-        return File.Exists(path) ? File.ReadAllText(path) : string.Empty;
-    }
     public static string GetGhAccessToken()
     {
         var userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

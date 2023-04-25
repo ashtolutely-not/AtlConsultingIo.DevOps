@@ -2,7 +2,7 @@
 using System.Reflection.Metadata.Ecma335;
 using System.Xml;
 
-namespace AtlConsultingIo.DevOps.PackageManager;
+namespace AtlConsultingIo.DevOps;
 
 public record struct PackageVersion
 {
@@ -43,9 +43,9 @@ public record struct PackageVersion
 
     }
 
-    public static PackageVersion ParseXmlVersion ( ProjectDirectory project )
+    public static PackageVersion ParseXmlVersion ( AtlProject project )
     {
-        if( project.GetProjectXml() is XmlNode node && node.ChildNodes is XmlNodeList nodes)
+        if( project.ProjectNode() is XmlNode node && node.ChildNodes is XmlNodeList nodes)
             foreach( XmlNode n in nodes )
                 if( n.Name.Equals("PropertyGroup") && n.ChildNodes is XmlNodeList properties )
                 {

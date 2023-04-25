@@ -3,12 +3,13 @@ using System.Text;
 using CliWrap;
 using Newtonsoft.Json;
 using CliWrap.Buffered;
+using AtlConsultingIo.DevOps;
 
 namespace AtlConsultingIo.Generators;
 internal static class SqlEntityGenerator
 {
     static readonly Workspace _ws = new AdhocWorkspace();
-    public static async Task Run( string configurationFilePath, bool writeToFile = false )
+    public static async Task Run( string configurationFilePath , bool writeToFile = false )
     {
         if ( !File.Exists( configurationFilePath ) )
             return;
@@ -18,31 +19,61 @@ internal static class SqlEntityGenerator
             return;
 
         EFScaffoldConfiguration configuration = JsonConvert.DeserializeObject<EFScaffoldConfiguration>( jsonTxt );
-        await Run( configuration, writeToFile );
+        await Run( configuration , writeToFile );
     }
     public static async Task Run( EFScaffoldConfiguration configuration , bool writeToFile = false )
     {
-       if( string.IsNullOrEmpty( configuration.ConnectionString ) )
-            throw new ArgumentNullException( nameof( configuration.ConnectionString ));
+        if ( string.IsNullOrEmpty( configuration.ConnectionString ) )
+            throw new ArgumentNullException( nameof( configuration.ConnectionString ) );
+
+        var tables = await GetTableList( configuration );
 
         var args =  new EFCoreCliCommand
                         .DbContextScaffoldCommand( configuration )
-                        .WithTableNames( await GetTableList( configuration ) )
+                        .WithTableNames( tables )
                         .Build();
 
-        var cmd = Cli.Wrap( FileLocations.DotNetEFExecutable )
-                    .WithWorkingDirectory( DirectoryLocations.Projects.This )
+        var cmd = Cli.Wrap( CommandParams.FilePaths.DotNetEFExecutable )
+                    .WithWorkingDirectory( CommandParams.ProjectDirectoryPaths.ThisProject )
                     .WithArguments( args );
 
         if ( writeToFile )
-            WriteCommandToFile( string.Concat( EFCoreCliCommand.Alias , TextUtils.WhitespaceChar , args ) );
+            WriteCommandToFile( string.Concat( EFCoreCliCommand.Alias , Utils.WhitespaceChar , args ) );
 
         await TryExecute( cmd );
+        AddSqlInterfaceSyntax( new DirectoryInfo( configuration.EntitiesOutDirectory ));
+        AdjustNames( configuration );
+    }
 
+    public static void AdjustNames( EFScaffoldConfiguration configuration )
+    {
+        if( !configuration.EntityNameAdjustments.Any() ) return;
+
+        var entitiesDir = new DirectoryInfo( configuration.EntitiesOutDirectory );
+        var ctxFile = new FileInfo(Path.Combine( configuration.ContextOutDirectory, configuration.ContextName + ".cs"));
+
+        if( !entitiesDir.Exists || !ctxFile.Exists ) return;
+
+        foreach( var kv in configuration.EntityNameAdjustments )
+        {
+            var entityFile = new FileInfo( Path.Combine( entitiesDir.FullName, kv.Key + ".cs"));
+            if( !entityFile.Exists ) continue;
+
+            var fileText = File.ReadAllText(entityFile.FullName);
+            fileText = fileText.Replace(kv.Key,kv.Value);
+
+            var newFile = new FileInfo( Path.Combine(entitiesDir.FullName, kv.Value + ".cs"));
+            File.WriteAllText( newFile.FullName, fileText);
+            File.Delete( entityFile.FullName );
+
+            fileText = File.ReadAllText(ctxFile.FullName);
+            fileText = fileText.Replace( $"DbSet<{kv.Key}>", $"DbSet<{kv.Value}>" );
+            File.WriteAllText( ctxFile.FullName, fileText );
+        }
     }
     public static void AddSqlInterfaceSyntax( DirectoryInfo entitiesDirectory )
     {
-        if( !entitiesDirectory.Exists ) return;
+        if ( !entitiesDirectory.Exists ) return;
         var files = entitiesDirectory.GetFiles();
         if ( files is not null )
             foreach ( var file in files )
@@ -55,16 +86,19 @@ internal static class SqlEntityGenerator
 
         var usings = root.Usings;
         var ns = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault();
-        if( ns is not null )
+        if ( ns is not null )
         {
-           ns = ns.RemoveNodes(ns.DescendantNodes().OfType<ClassDeclarationSyntax>(), SyntaxRemoveOptions.KeepNoTrivia);
+            ns = ns.RemoveNodes( ns.DescendantNodes().OfType<ClassDeclarationSyntax>() , SyntaxRemoveOptions.KeepNoTrivia );
         }
         ClassDeclarationSyntax? cls = root.DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
         if ( cls is null )
             return;
 
-        cls = cls.AddBaseListTypes( SimpleBaseType( ParseName( SourceMetadata.SqlInterfaceIdentifier ) ) );
+        if( cls.BaseList is not null && cls.BaseList.Types.Any( t => t.Type.ToString().Equals(CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier)) )
+            return;
+
+        cls = cls.AddBaseListTypes( SimpleBaseType( ParseName( CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier ) ) );
         cls = (ClassDeclarationSyntax) Formatter.Format( cls , _ws );
 
         var file = InitializeFileBuilder( usings, ns );
@@ -78,10 +112,10 @@ internal static class SqlEntityGenerator
 
     static void WriteCommandToFile( string commandText )
     {
-        if ( !Directory.Exists( DirectoryLocations.LocalOutputs.GeneratedSqlEntitiesTest ) )
-            Directory.CreateDirectory( DirectoryLocations.LocalOutputs.GeneratedSqlEntitiesTest );
+        if ( !Directory.Exists( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest ) )
+            Directory.CreateDirectory( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest );
 
-        File.WriteAllText( Path.Combine( DirectoryLocations.LocalOutputs.GeneratedSqlEntitiesTest , "EFCommand".UniqueFileName() + ".txt" ) , commandText );
+        File.WriteAllText( Path.Combine( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest , "EFCommand".UniqueFileName() + ".txt" ) , commandText );
     }
     static async Task TryExecute( Command command )
     {
@@ -89,7 +123,6 @@ internal static class SqlEntityGenerator
         {
             var _cmd = command.WithValidation( CommandResultValidation.None );
             var result = await _cmd.ExecuteBufferedAsync();
-
             Console.WriteLine( result.StandardOutput );
         }
         catch ( Exception e )
@@ -108,7 +141,7 @@ internal static class SqlEntityGenerator
         sb.AppendLine();
         sb.AppendLine();
 
-        sb.AppendLine( $"using { SourceMetadata.SqlInterfaceNamespace };" );
+        sb.AppendLine( $"using {CommandParams.AtlCoreMetadata.SqlInterfaceNamespace};" );
         foreach ( var u in usings )
             sb.AppendLine( u.ToString() );
 

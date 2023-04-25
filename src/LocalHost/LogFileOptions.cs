@@ -22,5 +22,5 @@ public record LogFileOptions
 
     public static readonly LogFileOptions None = new();
 
-    public static readonly LogFileOptions Default = new( DirectoryLocations.LocalOutputs.LogDirectory, "DevOps_Log");
+    public static readonly LogFileOptions Default = new( CommandParams.TestDirectoryPaths.LogDirectory, "DevOps_Log");
 }

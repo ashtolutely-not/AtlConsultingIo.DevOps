@@ -3,9 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-src/Locations/
+src/CommandParams.cs
 
-
+nuget.config*
 .commit-msg
 _config/
 

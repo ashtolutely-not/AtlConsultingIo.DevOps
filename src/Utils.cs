@@ -1,7 +1,7 @@
 ﻿
 using System.Text.RegularExpressions;
 
-internal static class TextUtils
+internal static class Utils
 {
     public const string WhitespaceChar = " ";
     public const string DoubleQuoteChar = "\"";
@@ -25,4 +25,11 @@ internal static class TextUtils
     {
         return Regex.Replace( value , "[^a-zA-Z0-9_.]+" , "" , RegexOptions.Compiled );
     }
+
+    public static EnumerationOptions RecursionOptions => new EnumerationOptions
+	{
+		RecurseSubdirectories = true,
+		MaxRecursionDepth = 15,
+		ReturnSpecialDirectories = false
+	};
 }
