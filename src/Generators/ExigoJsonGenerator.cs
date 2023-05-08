@@ -314,8 +314,8 @@ internal static class ExigoJsonGenerator
     }
     static string OutPath( bool writeToProject )
     => writeToProject ?
-        Path.Combine( CommandParams.ProjectDirectoryPaths.AtlExigoIntegration , "Api" , "Models" ) :
-        Path.Combine( CommandParams.TestDirectoryPaths.GeneratedClientModelsTest , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
+        Path.Combine( CommandParams.ProjectDirectoryPaths.Atl_ExigoIntegration , "Api" , "Models" ) :
+        Path.Combine( CommandParams.TestDirectoryPaths.NamedClientEntities , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
 
     #endregion
 

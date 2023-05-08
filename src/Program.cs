@@ -20,83 +20,128 @@ using System.IO;
 
 #endregion
 
-UpdateNamespaces();
-static void UpdateNamespaces()
-{
-    var dir = new DirectoryInfo( Path.Combine(CommandParams.ProjectDirectoryPaths.AtlCore,"src"));
-    var sourceDirs = dir.GetDirectories("*", SearchOption.TopDirectoryOnly);
 
-    foreach( var folder in sourceDirs )
+await ExigoEntitiesBuild.ProjectBuild();
+
+static class NamespaceUpdates
+{
+    public static void UpdateAtlCoreNamespaces()
     {
-        if( folder is null ) continue;
-        if( folder.Name.Equals( "IntegrationServices" ) )
+        DirectoryInfo dir = new ( Path.Combine(CommandParams.ProjectDirectoryPaths.Atl_Core,"src") );
+        DirectoryInfo[] sourceDirs = dir.GetDirectories("*", SearchOption.TopDirectoryOnly);
+
+        foreach( DirectoryInfo folder in sourceDirs )
         {
-            var subfolders = folder.GetDirectories("*",SearchOption.TopDirectoryOnly);
-            foreach( var f in subfolders )
+            Action<DirectoryInfo> func = folder.Name switch
             {
-                var nsLine = f.Name switch
-                {
-                    "Data" => "namespace AtlConsultingIo.Core.Data;",
-                    "Http" => "namespace AtlConsultingIo.Core.Http;",
-                    _ => "namespace AtlConsultingIo.Core;"
-                };
+                "Logging" => SetToAtlCoreLogging,
+                "Data" => SetToAtlCoreData,
+                "Http" => SetToAtlCoreHttp,
+                _ => SetToAtlCore
+            };
 
-                var srcFiles = f.GetFiles("*.cs", SearchOption.AllDirectories);
-                foreach ( var file in srcFiles )
-                {
-                    var lines = File.ReadAllLines( file.FullName );
-                    var sb = new StringBuilder();
-
-                    foreach ( var ln in lines )
-                    {
-                        var newLine = !ln.StartsWith("namespace") ? ln : nsLine;
-                        sb.AppendLine( newLine );
-                    }
-                    File.WriteAllText( file.FullName , sb.ToString() );
-                }
-            }
+            func( folder );
         }
-        else
-            UpdateNestedDirectories( folder );
+
     }
-
-}
-
-static void UpdateNestedDirectories( DirectoryInfo directory )
-{
-    var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-    var nsLine = "namespace AtlConsultingIo.Core;";
-    foreach ( var file in srcFiles )
+    public static void SetToAtlCoreLogging( DirectoryInfo directory )
     {
-        var lines = File.ReadAllLines( file.FullName );
-        var sb = new StringBuilder();
-
-        foreach ( var ln in lines )
+        if(!directory.Exists) return;
+        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
+        foreach ( var file in srcFiles )
         {
-            var newLine = !ln.StartsWith("namespace") ? ln : nsLine;
-            sb.AppendLine( newLine );
+            var lines = File.ReadAllLines( file.FullName );
+            var sb = new StringBuilder();
+
+            foreach ( var ln in lines )
+            {
+                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Logging;
+                sb.AppendLine( newLine );
+            }
+            File.WriteAllText( file.FullName , sb.ToString() );
         }
-        File.WriteAllText( file.FullName , sb.ToString() );
+    }
+    public static void SetToAtlCoreHttp( DirectoryInfo directory )
+    {
+        if(!directory.Exists) return;
+        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
+        foreach ( var file in srcFiles )
+        {
+            var lines = File.ReadAllLines( file.FullName );
+            var sb = new StringBuilder();
+
+            foreach ( var ln in lines )
+            {
+                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Http;
+                sb.AppendLine( newLine );
+            }
+            File.WriteAllText( file.FullName , sb.ToString() );
+        }
+    }
+    public static void SetToAtlCoreData( DirectoryInfo directory )
+    {
+        if(!directory.Exists) return;
+        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
+        foreach ( var file in srcFiles )
+        {
+            var lines = File.ReadAllLines( file.FullName );
+            var sb = new StringBuilder();
+
+            foreach ( var ln in lines )
+            {
+                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Data;
+                sb.AppendLine( newLine );
+            }
+            File.WriteAllText( file.FullName , sb.ToString() );
+        }
+    }
+    public static void SetToAtlCore( DirectoryInfo directory )
+    {
+        if(!directory.Exists) return;
+        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
+        foreach ( var file in srcFiles )
+        {
+            var lines = File.ReadAllLines( file.FullName );
+            var sb = new StringBuilder();
+
+            foreach ( var ln in lines )
+            {
+                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core;
+                sb.AppendLine( newLine );
+            }
+            File.WriteAllText( file.FullName , sb.ToString() );
+        }
     }
 }
-static class ExigoEntitiesDebugBuild
+
+static class ExigoEntitiesBuild
 {
-    static async Task BuildExigoEntities( bool useTestDirectory )
+    public static async Task TestBuild()
     {
         string cmdPath = CommandParams.FilePaths.ExigoSqlEntitiesConfig;
         string cmdFile = File.ReadAllText( cmdPath );
 
-        var projectConfig = JsonConvert.DeserializeObject<EFScaffoldConfiguration>( cmdFile );
+        var buildConfig = JsonConvert.DeserializeObject<EFScaffoldConfiguration>( cmdFile ) with
+        {
+            ContextOutDirectory = Path.Combine( CommandParams.TestDirectoryPaths.ExigoEntitiesTests , "dbo", "Context" ) ,
+            EntitiesOutDirectory = Path.Combine( CommandParams.TestDirectoryPaths.ExigoEntitiesTests , "dbo", "Entities" )
+        };
 
-        if ( useTestDirectory )
-            projectConfig = projectConfig with
-            {
-                ContextOutDirectory = Path.Combine( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest , "Contexts" ) ,
-                EntitiesOutDirectory = Path.Combine( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest , "Exigo" )
-            };
+        await SqlEntityGenerator.Run( buildConfig );
+        SqlEntityGenerator.AdjustNames( buildConfig );
+        SqlEntityGenerator.AddSqlInterfaceSyntax( buildConfig );  
+    }
 
-        await SqlEntityGenerator.Run( projectConfig , writeToFile: true );
-        SqlEntityGenerator.AddSqlInterfaceSyntax( new DirectoryInfo( projectConfig.EntitiesOutDirectory ) );
+    public static async Task ProjectBuild()
+    {
+        string cmdPath = CommandParams.FilePaths.ExigoSqlEntitiesConfig;
+        string cmdFile = File.ReadAllText( cmdPath );
+
+        var buildConfig = JsonConvert.DeserializeObject<EFScaffoldConfiguration>( cmdFile );
+
+        await SqlEntityGenerator.Run( buildConfig );
+        SqlEntityGenerator.AdjustNames( buildConfig );
+        SqlEntityGenerator.AddSqlInterfaceSyntax( buildConfig );  
     }
 }
 

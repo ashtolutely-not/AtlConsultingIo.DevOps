@@ -41,8 +41,6 @@ internal static class SqlEntityGenerator
             WriteCommandToFile( string.Concat( EFCoreCliCommand.Alias , Utils.WhitespaceChar , args ) );
 
         await TryExecute( cmd );
-        AddSqlInterfaceSyntax( new DirectoryInfo( configuration.EntitiesOutDirectory ));
-        AdjustNames( configuration );
     }
 
     public static void AdjustNames( EFScaffoldConfiguration configuration )
@@ -56,23 +54,24 @@ internal static class SqlEntityGenerator
 
         foreach( var kv in configuration.EntityNameAdjustments )
         {
-            var entityFile = new FileInfo( Path.Combine( entitiesDir.FullName, kv.Key + ".cs"));
-            if( !entityFile.Exists ) continue;
+            var oldFile = new FileInfo( Path.Combine( entitiesDir.FullName, kv.Key + ".cs"));
+            if( !oldFile.Exists ) continue;
 
-            var fileText = File.ReadAllText(entityFile.FullName);
-            fileText = fileText.Replace(kv.Key,kv.Value);
+            var oldFileText = File.ReadAllText(oldFile.FullName);
+            var newFileText = oldFileText.Replace(kv.Key,kv.Value);
 
             var newFile = new FileInfo( Path.Combine(entitiesDir.FullName, kv.Value + ".cs"));
-            File.WriteAllText( newFile.FullName, fileText);
-            File.Delete( entityFile.FullName );
+            File.WriteAllText( newFile.FullName, newFileText);
+            File.Delete( oldFile.FullName );
 
-            fileText = File.ReadAllText(ctxFile.FullName);
-            fileText = fileText.Replace( $"DbSet<{kv.Key}>", $"DbSet<{kv.Value}>" );
-            File.WriteAllText( ctxFile.FullName, fileText );
+            var contextFileText = File.ReadAllText(ctxFile.FullName);
+            contextFileText = contextFileText.Replace( $"DbSet<{kv.Key}>", $"DbSet<{kv.Value}>" );
+            File.WriteAllText( ctxFile.FullName, contextFileText );
         }
     }
-    public static void AddSqlInterfaceSyntax( DirectoryInfo entitiesDirectory )
+    public static void AddSqlInterfaceSyntax( EFScaffoldConfiguration configuration )
     {
+        var entitiesDirectory = new DirectoryInfo( configuration.EntitiesOutDirectory );
         if ( !entitiesDirectory.Exists ) return;
         var files = entitiesDirectory.GetFiles();
         if ( files is not null )
@@ -84,25 +83,37 @@ internal static class SqlEntityGenerator
         SyntaxTree tree = CSharpSyntaxTree.ParseText( File.ReadAllText( entityFile.FullName ));
         CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
 
-        var usings = root.Usings;
-        var ns = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault();
-        if ( ns is not null )
+        ClassDeclarationSyntax? cls = root.DescendantNodes()
+                                        .OfType<ClassDeclarationSyntax>()
+                                        .FirstOrDefault();
+        if( cls is null ) return;
+        if( cls.BaseList is not null 
+            && cls.BaseList.Types.Any( t => t.Type.ToString().Equals(CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier)) )
+            return;
+
+        cls = cls.AddBaseListTypes( 
+            SimpleBaseType( 
+                ParseName( CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier ) 
+                ) );
+
+        FileScopedNamespaceDeclarationSyntax? nsNode 
+           = root.DescendantNodes()
+            .OfType<FileScopedNamespaceDeclarationSyntax>()
+            .FirstOrDefault();
+
+        if( nsNode is not null )
         {
-            ns = ns.RemoveNodes( ns.DescendantNodes().OfType<ClassDeclarationSyntax>() , SyntaxRemoveOptions.KeepNoTrivia );
-        }
-        ClassDeclarationSyntax? cls = root.DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+            IEnumerable<ClassDeclarationSyntax> clsNodes = nsNode.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            if( clsNodes.Any() )
+                nsNode = nsNode.RemoveNodes( clsNodes, SyntaxRemoveOptions.KeepNoTrivia );
+        }    
+        
+        var file = InitializeFileBuilder( 
+                root.Usings, 
+                nsNode
+            );
 
-        if ( cls is null )
-            return;
-
-        if( cls.BaseList is not null && cls.BaseList.Types.Any( t => t.Type.ToString().Equals(CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier)) )
-            return;
-
-        cls = cls.AddBaseListTypes( SimpleBaseType( ParseName( CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier ) ) );
-        cls = (ClassDeclarationSyntax) Formatter.Format( cls , _ws );
-
-        var file = InitializeFileBuilder( usings, ns );
-        file.Append( cls.ToString() );
+        file.Append( ((ClassDeclarationSyntax) Formatter.Format( cls , _ws )).ToString() );
 
         File.WriteAllText( entityFile.FullName , file.ToString() );
 
@@ -112,10 +123,10 @@ internal static class SqlEntityGenerator
 
     static void WriteCommandToFile( string commandText )
     {
-        if ( !Directory.Exists( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest ) )
-            Directory.CreateDirectory( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest );
+        if ( !Directory.Exists( CommandParams.TestDirectoryPaths.ExigoEntitiesTests ) )
+            Directory.CreateDirectory( CommandParams.TestDirectoryPaths.ExigoEntitiesTests );
 
-        File.WriteAllText( Path.Combine( CommandParams.TestDirectoryPaths.GeneratedSqlEntitiesTest , "EFCommand".UniqueFileName() + ".txt" ) , commandText );
+        File.WriteAllText( Path.Combine( CommandParams.TestDirectoryPaths.ExigoEntitiesTests , "EFCommand".UniqueFileName() + ".txt" ) , commandText );
     }
     static async Task TryExecute( Command command )
     {
@@ -146,7 +157,10 @@ internal static class SqlEntityGenerator
             sb.AppendLine( u.ToString() );
 
         if ( @namespace is not null )
+        {
+            sb.AppendLine();
             sb.AppendLine( @namespace.ToString() );
+        }
 
         sb.AppendLine();
 
@@ -157,8 +171,8 @@ internal static class SqlEntityGenerator
         var tableResult = await GetSchemaTables( configuration.ConnectionString, configuration.Schema, configuration.IncludeTableViews );
         var tableNames = tableResult.ToList();
 
-        if ( configuration.ExcludedTables.Any() )
-            tableNames.RemoveAll( name => configuration.ExcludedTables.Any( tbl => tbl.Equals( name , StringComparison.OrdinalIgnoreCase ) ) );
+        foreach( string table in configuration.ExcludedTables )
+            tableNames.RemoveAll( x => x.Equals( table, StringComparison.OrdinalIgnoreCase));
 
         return tableNames;
     }
