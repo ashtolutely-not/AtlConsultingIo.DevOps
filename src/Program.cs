@@ -1,27 +1,20 @@
 ﻿#pragma warning disable CS8321 // Local function is declared but never used
 
 #region Usings
-using CliWrap.Buffered;
-using CliWrap;
+
 using AtlConsultingIo.Generators;
-using AtlConsultingIo.NamespaceAnalyzer;
-
-using Microsoft.CodeAnalysis.Text;
-using Microsoft.Extensions.Options;
-
 using Newtonsoft.Json;
 
-using System.Diagnostics;
 using System.Text;
 using AtlConsultingIo.DevOps;
-using Newtonsoft.Json.Linq;
-using Microsoft.Data.SqlClient;
-using System.IO;
+
 
 #endregion
 
+string srcDirectory = @"C:\Users\ashto\source\repos\TotalLife.Types\Values";
+string outDirectory = @"C:\Users\ashto\source\repos\TotalLife.Types\Values\Adapters";  
 
-await ExigoEntitiesBuild.ProjectBuild();
+ValueTypeGenerator.Run( srcDirectory , outDirectory );  
 
 static class NamespaceUpdates
 {

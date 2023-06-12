@@ -1,4 +1,4 @@
-﻿namespace AtlConsultingIo.NamespaceAnalyzer;
+﻿namespace AtlConsultingIo.DevOps;
 internal record ProjectNamespace( string Name )
 {
     public List<Document> Documents { get; init; } = new List<Document>();

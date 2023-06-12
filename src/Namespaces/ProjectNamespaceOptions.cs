@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-namespace AtlConsultingIo.NamespaceAnalyzer;
+namespace AtlConsultingIo.DevOps;
 
 
 internal struct ProjectNamespaceOptions

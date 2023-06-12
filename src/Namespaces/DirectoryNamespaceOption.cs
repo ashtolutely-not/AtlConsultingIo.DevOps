@@ -1,4 +1,4 @@
-﻿namespace AtlConsultingIo.NamespaceAnalyzer;
+﻿namespace AtlConsultingIo.DevOps;
 internal record DirectoryNamespaceOption
 {
     public string DirectoryName { get; init; } = String.Empty;

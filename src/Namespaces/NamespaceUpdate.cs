@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using System.Reflection;
 using System.Text;
 
-namespace AtlConsultingIo.NamespaceAnalyzer;
+namespace AtlConsultingIo.DevOps;
 internal static class NamespaceUpdate
 {
     //INCOMPLETE

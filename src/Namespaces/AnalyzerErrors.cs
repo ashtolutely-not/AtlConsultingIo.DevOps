@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace AtlConsultingIo.NamespaceAnalyzer;
+namespace AtlConsultingIo.DevOps;
 internal static class AnalyzerErrors
 {
     public static class ThrowIf

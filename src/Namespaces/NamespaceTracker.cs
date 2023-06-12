@@ -1,4 +1,4 @@
-﻿namespace AtlConsultingIo.NamespaceAnalyzer;
+﻿namespace AtlConsultingIo.DevOps;
 
 internal record struct NamespaceTracker( Document Document , SemanticModel Model )
 {
