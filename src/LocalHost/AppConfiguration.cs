@@ -3,11 +3,11 @@
 
 namespace AtlConsultingIo.DevOps.LocalHost;
 
-public record AppOptions
+public record AppConfiguration
 {
     private IConfiguration _configuration;
 
-    public AppOptions(IConfiguration configuration)
+    public AppConfiguration(IConfiguration configuration)
     {
         _configuration = configuration;
     }

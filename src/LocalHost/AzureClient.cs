@@ -15,8 +15,8 @@ namespace AtlConsultingIo.DevOps;
 public class AzureClient
 {
     private readonly ILogger _logger;
-    private readonly AppOptions _options;
-    public AzureClient( ILogger logger , IOptions<AppOptions> options )
+    private readonly AppConfiguration _options;
+    public AzureClient( ILogger logger , IOptions<AppConfiguration> options )
     {
         _logger = logger;
         _options = options.Value;
@@ -42,7 +42,7 @@ public class AzureClient
 
     public TokenCredential GetTlcCredential()
     {
-        var id = _options.Get( SecretKeys.TlcAzureIdentity );
+        var id = _options.Get( CommandParams.SecretKeys.TlcAzureIdentity );
 
         return !string.IsNullOrEmpty( id ) ? new DefaultAzureCredential( new DefaultAzureCredentialOptions
         {
@@ -52,7 +52,7 @@ public class AzureClient
 
     public TokenCredential GetDevCredential()
     {
-        var id = _options.Get( SecretKeys.DevAzureIdentity );
+        var id = _options.Get( CommandParams.SecretKeys.DevAzureIdentity );
 
         return !string.IsNullOrEmpty( id ) ? new DefaultAzureCredential( new DefaultAzureCredentialOptions
         {

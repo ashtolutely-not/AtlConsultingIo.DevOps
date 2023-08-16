@@ -48,12 +48,7 @@ internal static class ValueTypeGenerator
         foreach( var c in _candidates )
         {
             ClassDeclarationSyntax cls = ConstructConverter( c );
-            StringBuilder sb = c switch
-            {
-                ValueTypeCandidate { Namespace : not null } candidate => new( candidate.Namespace.ToFullString() ),
-                ValueTypeCandidate { FileNamespace : not null } candidate => new( candidate.FileNamespace.ToFullString() ),
-                _ => new()
-            };
+            StringBuilder sb = GetBuilder( c.Namespace );
 
             sb.AppendLine();
             sb.AppendLine( cls.ToString() );   
@@ -96,12 +91,7 @@ internal static class ValueTypeGenerator
         foreach( var c in _candidates )
         {
             ClassDeclarationSyntax cls = ConstructHandler( c );
-            StringBuilder sb = c switch
-            {
-                ValueTypeCandidate { Namespace : not null } candidate => new( candidate.Namespace.ToFullString() ),
-                ValueTypeCandidate { FileNamespace : not null } candidate => new( candidate.FileNamespace.ToFullString() ),
-                _ => new()
-            };
+            StringBuilder sb = GetBuilder( c.Namespace );
 
             sb.AppendLine();
             sb.AppendLine( cls.ToString() );   
@@ -113,6 +103,26 @@ internal static class ValueTypeGenerator
         }
     }
 
+
+
+    private static StringBuilder GetBuilder( string? Namespace )
+    {
+        var sb = GetBuilder();
+        if( !string.IsNullOrWhiteSpace( Namespace ))
+            sb.AppendLine( Namespace );
+        return sb;
+    }   
+    private static StringBuilder GetBuilder()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("// Code generated using Roslyn API's. ");
+        sb.AppendLine("// Generator assumes decorated types are record structs with a property named Value that holds the framework provided value type.");
+        sb.AppendLine("// Modification of these types after generation could have unintended consequences." );
+
+        sb.AppendLine();
+        return sb;
+    }
+    //Currently the logic assumes an empty constructor is available for all types, so we will limit scope to record structs for now
     private static ValueTypeCandidate? GetCandidate( FileInfo srcFile )
     {
         ValueTypeCandidate? candidate = null;
@@ -124,7 +134,7 @@ internal static class ValueTypeGenerator
         CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
 
         RecordDeclarationSyntax? fileRecord = root.DescendantNodes().OfType<RecordDeclarationSyntax>().FirstOrDefault();
-        if( fileRecord is not RecordDeclarationSyntax _record || !_record.AttributeLists.Any())
+        if( fileRecord is not RecordDeclarationSyntax _record || !_record.AttributeLists.Any() || !_record.IsKind(Kind.RecordStructDeclaration))
             return candidate;
 
         PropertyDeclarationSyntax? valueProp 
@@ -135,46 +145,44 @@ internal static class ValueTypeGenerator
         if( valueProp is not PropertyDeclarationSyntax _prop )
             return candidate;
 
-        NamespaceDeclarationSyntax? nsDeclaration = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
-        FileScopedNamespaceDeclarationSyntax? fileNsDeclaration = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault();
+        bool hasJsonAttr = _record.AttributeLists
+            .SelectMany( a => a.Attributes )
+            .FirstOrDefault( a => a.Name.ToString().Equals( NewtonsoftAttributeName ) ) is not null;
 
-        NamespaceDeclarationSyntax? cleanedNs 
-            = nsDeclaration is NamespaceDeclarationSyntax _ns ?
-            _ns.RemoveNodes( _ns.DescendantNodes().OfType<RecordDeclarationSyntax>(), SyntaxRemoveOptions.KeepNoTrivia) : null;
-
-        FileScopedNamespaceDeclarationSyntax? cleanedFileNs 
-            = fileNsDeclaration is FileScopedNamespaceDeclarationSyntax _fileNs ?
-            _fileNs.RemoveNodes( _fileNs.DescendantNodes().OfType<RecordDeclarationSyntax>(), SyntaxRemoveOptions.KeepNoTrivia) : null;
+        bool hasDapperAttr = _record.AttributeLists
+            .SelectMany( a => a.Attributes )
+            .FirstOrDefault( a => a.Name.ToString().Equals( DapperAttributeName ) ) is not null;
 
         candidate = new( 
             _record, 
             _prop, 
-            HasNewtonsoftAttribute( _record ), 
-            HasDapperAttribute( _record ) ,
-            cleanedNs,
-            cleanedFileNs);
+            hasJsonAttr, 
+            hasDapperAttr,
+            GetNamespace(root));
 
         return candidate;
     }
-    private static bool HasNewtonsoftAttribute( RecordDeclarationSyntax record )
+
+    private static string? GetNamespace( CompilationUnitSyntax root )
     {
-        var attributes = record.AttributeLists
-            .SelectMany( a => a.Attributes );
+        NamespaceDeclarationSyntax? nsDeclaration = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
+        if( nsDeclaration is not null )
+        {
+            nsDeclaration = nsDeclaration.RemoveNodes( nsDeclaration.DescendantNodes().OfType<RecordDeclarationSyntax>(), SyntaxRemoveOptions.KeepNoTrivia);
+            if( nsDeclaration is not null )
+                return nsDeclaration.ToFullString();
+        }
 
-        AttributeSyntax? attribute 
-            = attributes.FirstOrDefault( a => a.Name.ToString().Equals( NewtonsoftAttributeName ) );
+        FileScopedNamespaceDeclarationSyntax? fileNsDeclaration 
+            = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault();
 
-        return attribute is not null;
-    }
-    private static bool HasDapperAttribute( RecordDeclarationSyntax record )
-    {
-        var attributes = record.AttributeLists
-            .SelectMany( a => a.Attributes );
+        if( fileNsDeclaration is not null )
+            fileNsDeclaration = fileNsDeclaration
+                .RemoveNodes( fileNsDeclaration
+                .DescendantNodes()
+                .OfType<RecordDeclarationSyntax>(),SyntaxRemoveOptions.KeepNoTrivia);
 
-        AttributeSyntax? attribute 
-            = attributes.FirstOrDefault( a => a.Name.ToString().Equals( DapperAttributeName ) );
-
-        return attribute is not null;
+        return fileNsDeclaration?.ToFullString();
     }
 
     private static ClassDeclarationSyntax ConstructConverter( ValueTypeCandidate candidate )
@@ -195,12 +203,12 @@ internal static class ValueTypeGenerator
     private static string ConverterClassIdentifier( ValueTypeCandidate candidate )
     {
         string name = candidate.Record.Identifier.ValueText;
-        return $"{name}NewtonsoftConverter" ;
+        return $"{name}JsonConverter" ;
     }
     private static string HandlerClassIdentifier( ValueTypeCandidate candidate )
     {
         string name = candidate.Record.Identifier.ValueText;
-        return $"{name}DapperHandler" ;
+        return $"{name}TypeHandler" ;
     }
 
     private static SimpleBaseTypeSyntax DapperBaseType( ValueTypeCandidate candidate )
@@ -230,7 +238,7 @@ internal static class ValueTypeGenerator
             => Format<MethodDeclarationSyntax>(
                     Factory.MethodDeclaration( ReturnType(candidate), "ReadJson")
                             .AddModifiers( Factory.Token( Kind.PublicKeyword ), Factory.Token( Kind.OverrideKeyword ) )
-                            .AddParameterListParameters( MethodParams.Reader, MethodParams.ObjectType, MethodParams.ExistingValueParam(candidate), MethodParams.HasExisting, MethodParams.Serializer )
+                            .AddParameterListParameters( Parameters.Reader, Parameters.ObjectType, Parameters.ExistingValueParam(candidate), Parameters.HasExisting, Parameters.Serializer )
                             .AddBodyStatements( MethodStatements.ReadJson( candidate ) )
                 );
 
@@ -238,7 +246,7 @@ internal static class ValueTypeGenerator
             => Format<MethodDeclarationSyntax>(
                     Factory.MethodDeclaration( Factory.ParseTypeName( "void" ), "WriteJson" )
                             .AddModifiers( Factory.Token( Kind.PublicKeyword ), Factory.Token( Kind.OverrideKeyword ) )
-                            .AddParameterListParameters( MethodParams.Writer, MethodParams.ValueParam(candidate), MethodParams.Serializer )
+                            .AddParameterListParameters( Parameters.Writer, Parameters.ValueParam(candidate), Parameters.Serializer )
                             .AddBodyStatements( MethodStatements.WriteJson )
                 );
 
@@ -246,7 +254,7 @@ internal static class ValueTypeGenerator
             => Format<MethodDeclarationSyntax>(
                     Factory.MethodDeclaration( ReturnType(candidate), "Parse" )
                         .AddModifiers( Factory.Token( Kind.PublicKeyword ), Factory.Token( Kind.OverrideKeyword ) )
-                        .AddParameterListParameters( MethodParams.ObjectValueParam )
+                        .AddParameterListParameters( Parameters.ObjectValueParam )
                         .AddBodyStatements( MethodStatements.Parse( candidate ) )
                 );
 
@@ -254,24 +262,24 @@ internal static class ValueTypeGenerator
             => Format<MethodDeclarationSyntax>(
                     Factory.MethodDeclaration( Factory.ParseTypeName( "void" ), "SetValue" )
                         .AddModifiers( Factory.Token( Kind.PublicKeyword ), Factory.Token( Kind.OverrideKeyword ) )
-                        .AddParameterListParameters( MethodParams.DbParameter, MethodParams.ValueParam(candidate) )
+                        .AddParameterListParameters( Parameters.DbParameter, Parameters.ValueParam(candidate) )
                         .AddBodyStatements( MethodStatements.SetValue )
                 );
     }
 
-    private static class MethodParams
+    private static class Parameters
     {
         public static ParameterSyntax ValueParam( ValueTypeCandidate candidate )
         {
             string name = candidate.Record.Identifier.ValueText;
             return Factory.Parameter( Factory.Identifier( "value" ) )
-                    .WithType( Factory.ParseTypeName( $"{name}?" ) );
+                    .WithType( Factory.ParseTypeName( $"{name}" ) );
         }
         public static ParameterSyntax ExistingValueParam( ValueTypeCandidate candidate )
         {
             string name = candidate.Record.Identifier.ValueText;
             return Factory.Parameter( Factory.Identifier( "existingValue" ) )
-                    .WithType( Factory.ParseTypeName( $"{name}?" ) );
+                    .WithType( Factory.ParseTypeName( $"{name}" ) );
         }
         public static readonly ParameterSyntax Reader 
             = Factory.Parameter( Factory.Identifier( "reader" ) )
@@ -304,31 +312,25 @@ internal static class ValueTypeGenerator
 
     private static class MethodStatements
     {
-        public static StatementSyntax[] ReadJson( ValueTypeCandidate candidate )
+        public static StatementSyntax ReadJson( ValueTypeCandidate candidate )
         {
             string valueType = candidate.ValueProperty.Type.ToString();
             string typeName = candidate.Record.Identifier.ValueText;  
             
-            return new StatementSyntax[]
-            {
-                Format<StatementSyntax>(Factory.ParseStatement($"{valueType}? value = serializer.Deserialize<{valueType}?>( reader );")),
-                Format<StatementSyntax>(Factory.ParseStatement($"return new {typeName}( value ?? default );"))
-            };
+            return  Format<StatementSyntax>(
+                    Factory.ParseStatement($"return serializer.Deserialize<{valueType}?>( reader ) is not {valueType} _value ? new {typeName}() : new {typeName}( _value );")
+                );
         }
-
         public static readonly StatementSyntax WriteJson
             = Format<StatementSyntax>(Factory.ParseStatement($"serializer.Serialize( writer, value.Value );"));
 
-        public static StatementSyntax[] Parse( ValueTypeCandidate candidate )
+        public static StatementSyntax Parse( ValueTypeCandidate candidate )
         {
             string valueType = candidate.ValueProperty.Type.ToString();
             string typeName = candidate.Record.Identifier.ValueText;    
-            return new StatementSyntax[]
-            {
-                Format<StatementSyntax>(
-                    Factory.ParseStatement($"return value is not {valueType} _internal ? {typeName}.Default : new {typeName}( _internal );")
-                    )
-            };
+            return Format<StatementSyntax>(
+                    Factory.ParseStatement($"return value is not {valueType} _internal ? new {typeName}() : new {typeName}( _internal );")
+                );
         }
 
         public static readonly StatementSyntax SetValue
@@ -342,5 +344,4 @@ internal readonly record struct ValueTypeCandidate(
     PropertyDeclarationSyntax ValueProperty , 
     bool HasNewtonsoftAttribute, 
     bool HasDapperAttribute,
-    NamespaceDeclarationSyntax? Namespace = null ,
-    FileScopedNamespaceDeclarationSyntax? FileNamespace = null );
+    string? Namespace );

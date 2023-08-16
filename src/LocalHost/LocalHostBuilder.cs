@@ -32,7 +32,7 @@ public static class LocalHostBuilder
         })
         .ConfigureServices((ctx, services) =>
         {
-            var appOptions = new AppOptions(ctx.Configuration);
+            var appOptions = new AppConfiguration(ctx.Configuration);
             services.AddLogging();
             services.AddOptions();
             services.ConfigureOptions(appOptions);

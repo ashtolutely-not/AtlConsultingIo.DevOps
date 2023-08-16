@@ -185,7 +185,7 @@ internal static class ExigoJsonGenerator
     }
     static RecordDeclarationSyntax ToRecordSyntax( this ClassDeclarationSyntax @class , SemanticModel model )
     {
-        var _cls = @class.AddBaseListTypes( SimpleBaseType( ParseName( CommandParams.AtlCoreMetadata.JsonInterfaceIdentifier )) );
+        var _cls = @class;
         var _rec = RecordDeclaration( Token( SyntaxKind.RecordKeyword ), _cls.Identifier)
                     .AddModifiers(Token(SyntaxKind.PublicKeyword))
                     .WithOpenBraceToken(Token(SyntaxKind.OpenBraceToken))
@@ -272,7 +272,7 @@ internal static class ExigoJsonGenerator
         sb.AppendLine();
 
         sb.AppendLine( "using System.Data;" );
-        sb.AppendLine( $"namespace {CommandParams.AtlCoreMetadata.ExigoApiModelsNamespace};" );
+        sb.AppendLine( $"namespace {CommandParams.AtlConsultingIoProjects.ExigoGeneratorNamespaces.ApiModels};" );
 
         return sb;
     }
@@ -314,7 +314,7 @@ internal static class ExigoJsonGenerator
     }
     static string OutPath( bool writeToProject )
     => writeToProject ?
-        Path.Combine( CommandParams.ProjectDirectoryPaths.Atl_ExigoIntegration , "Api" , "Models" ) :
+        Path.Combine( CommandParams.AtlConsultingIoProjects.PathBase , "AtlConsultingIo.Exigo", "Api", "Generated" ) :
         Path.Combine( CommandParams.TestDirectoryPaths.NamedClientEntities , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
 
     #endregion

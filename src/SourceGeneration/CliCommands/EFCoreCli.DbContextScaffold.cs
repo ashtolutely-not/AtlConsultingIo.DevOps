@@ -29,7 +29,7 @@ internal partial record struct EFCoreCliCommand
         {
             var list = new List<string>();
             foreach( var tbl in tableNames )
-                list.Add( string.Join( Utils.WhitespaceChar, Args.TableName, QualifiedName(tbl) ) );
+                list.Add( string.Join( Extensions.WhitespaceChar, Args.TableName, QualifiedName(tbl) ) );
 
             return this with { _tableArgs = list };
         }
@@ -62,11 +62,11 @@ internal partial record struct EFCoreCliCommand
         void setArgs()
         {
             _args.Clear();
-            _args.Add( string.Join( Utils.WhitespaceChar, ContextNameArg , _configuration.ContextName ) );
-            _args.Add( string.Join( Utils.WhitespaceChar, Args.EntityClassDirectory , _configuration.EntitiesOutDirectory.SurroundWithDoubleQuotes() ) );
-            _args.Add( string.Join( Utils.WhitespaceChar, Args.EntityClassNamespace , _configuration.EntitiesNamespace ) );
-            _args.Add( string.Join( Utils.WhitespaceChar, Args.DbContextClassDirectory , _configuration.ContextOutDirectory.SurroundWithDoubleQuotes() ) );
-            _args.Add( string.Join( Utils.WhitespaceChar, Args.DbContextClassNamespace , _configuration.ContextNamespace ) );
+            _args.Add( string.Join( Extensions.WhitespaceChar, ContextNameArg , _configuration.ContextName ) );
+            _args.Add( string.Join( Extensions.WhitespaceChar, Args.EntityClassDirectory , _configuration.EntitiesOutDirectory.SurroundWithDoubleQuotes() ) );
+            _args.Add( string.Join( Extensions.WhitespaceChar, Args.EntityClassNamespace , _configuration.EntitiesNamespace ) );
+            _args.Add( string.Join( Extensions.WhitespaceChar, Args.DbContextClassDirectory , _configuration.ContextOutDirectory.SurroundWithDoubleQuotes() ) );
+            _args.Add( string.Join( Extensions.WhitespaceChar, Args.DbContextClassNamespace , _configuration.ContextNamespace ) );
 
             //var objDir =  Path.Join( DirectoryLocations.Projects.BuildOutputBase, ProjectNames.This, "obj").SurroundWithDoubleQuotes();
             //_args.Add( string.Join( TextUtils.WhitespaceChar, Args.MSBuildExtension, objDir ));
@@ -74,7 +74,7 @@ internal partial record struct EFCoreCliCommand
             //since the generator actually queries the database to get all of the eligible tables for the schema we don't want to set this
             //if the schema arg is included then all of the table args are ignored, meaning any ignored tables will still get created
             if( !_tableArgs.Any())
-                _args.Add( string.Join( Utils.WhitespaceChar, Args.SchemaName , _configuration.Schema ) );
+                _args.Add( string.Join( Extensions.WhitespaceChar, Args.SchemaName , _configuration.Schema ) );
         }
         void setFlags()
         {

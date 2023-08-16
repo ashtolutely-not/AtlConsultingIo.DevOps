@@ -34,11 +34,11 @@ internal static class SqlEntityGenerator
                         .Build();
 
         var cmd = Cli.Wrap( CommandParams.FilePaths.DotNetEFExecutable )
-                    .WithWorkingDirectory( CommandParams.ProjectDirectoryPaths.ThisProject )
+                    .WithWorkingDirectory( CommandParams.AtlConsultingIoProjects.DirectoryPaths.DevOps )
                     .WithArguments( args );
 
         if ( writeToFile )
-            WriteCommandToFile( string.Concat( EFCoreCliCommand.Alias , Utils.WhitespaceChar , args ) );
+            WriteCommandToFile( string.Concat( EFCoreCliCommand.Alias , Extensions.WhitespaceChar , args ) );
 
         await TryExecute( cmd );
     }
@@ -69,15 +69,7 @@ internal static class SqlEntityGenerator
             File.WriteAllText( ctxFile.FullName, contextFileText );
         }
     }
-    public static void AddSqlInterfaceSyntax( EFScaffoldConfiguration configuration )
-    {
-        var entitiesDirectory = new DirectoryInfo( configuration.EntitiesOutDirectory );
-        if ( !entitiesDirectory.Exists ) return;
-        var files = entitiesDirectory.GetFiles();
-        if ( files is not null )
-            foreach ( var file in files )
-                AddSqlInterfaceSyntax( file );
-    }
+
     public static void AddSqlInterfaceSyntax( FileInfo entityFile )
     {
         SyntaxTree tree = CSharpSyntaxTree.ParseText( File.ReadAllText( entityFile.FullName ));
@@ -87,14 +79,6 @@ internal static class SqlEntityGenerator
                                         .OfType<ClassDeclarationSyntax>()
                                         .FirstOrDefault();
         if( cls is null ) return;
-        if( cls.BaseList is not null 
-            && cls.BaseList.Types.Any( t => t.Type.ToString().Equals(CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier)) )
-            return;
-
-        cls = cls.AddBaseListTypes( 
-            SimpleBaseType( 
-                ParseName( CommandParams.AtlCoreMetadata.SqlInterfaceIdentifier ) 
-                ) );
 
         FileScopedNamespaceDeclarationSyntax? nsNode 
            = root.DescendantNodes()
@@ -152,7 +136,7 @@ internal static class SqlEntityGenerator
         sb.AppendLine();
         sb.AppendLine();
 
-        sb.AppendLine( $"using {CommandParams.AtlCoreMetadata.SqlInterfaceNamespace};" );
+        sb.AppendLine( $"using {CommandParams.AtlConsultingIoProjects.ExigoGeneratorNamespaces.DatabaseEntities};" );
         foreach ( var u in usings )
             sb.AppendLine( u.ToString() );
 

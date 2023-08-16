@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS8321 // Local function is declared but never used
-
+﻿
 #region Usings
 
 using AtlConsultingIo.Generators;
@@ -7,105 +6,43 @@ using Newtonsoft.Json;
 
 using System.Text;
 using AtlConsultingIo.DevOps;
+using System.IO;
 
 
 #endregion
 
-string srcDirectory = @"C:\Users\ashto\source\repos\TotalLife.Types\Values";
-string outDirectory = @"C:\Users\ashto\source\repos\TotalLife.Types\Values\Adapters";  
 
-ValueTypeGenerator.Run( srcDirectory , outDirectory );  
 
-static class NamespaceUpdates
+
+//var buildProject = BuildProject.Create( CommandParams.TotalLifeProjects.DirectoryPaths.Integrations );
+//var buildProject = BuildProject.Create( CommandParams.AtlConsultingIoProjects.DirectoryPaths.IntegrationOperations );
+
+var buildProject = BuildProject.Create( CommandParams.TotalLifeProjects.DirectoryPaths.QueryOperations );
+await BuildCommitAndPush( buildProject, BuildProfile.Debug );
+
+
+static async Task BuildCommitAndPush( BuildProject project , BuildProfile profile )
 {
-    public static void UpdateAtlCoreNamespaces()
-    {
-        DirectoryInfo dir = new ( Path.Combine(CommandParams.ProjectDirectoryPaths.Atl_Core,"src") );
-        DirectoryInfo[] sourceDirs = dir.GetDirectories("*", SearchOption.TopDirectoryOnly);
-
-        foreach( DirectoryInfo folder in sourceDirs )
-        {
-            Action<DirectoryInfo> func = folder.Name switch
-            {
-                "Logging" => SetToAtlCoreLogging,
-                "Data" => SetToAtlCoreData,
-                "Http" => SetToAtlCoreHttp,
-                _ => SetToAtlCore
-            };
-
-            func( folder );
-        }
-
-    }
-    public static void SetToAtlCoreLogging( DirectoryInfo directory )
-    {
-        if(!directory.Exists) return;
-        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-        foreach ( var file in srcFiles )
-        {
-            var lines = File.ReadAllLines( file.FullName );
-            var sb = new StringBuilder();
-
-            foreach ( var ln in lines )
-            {
-                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Logging;
-                sb.AppendLine( newLine );
-            }
-            File.WriteAllText( file.FullName , sb.ToString() );
-        }
-    }
-    public static void SetToAtlCoreHttp( DirectoryInfo directory )
-    {
-        if(!directory.Exists) return;
-        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-        foreach ( var file in srcFiles )
-        {
-            var lines = File.ReadAllLines( file.FullName );
-            var sb = new StringBuilder();
-
-            foreach ( var ln in lines )
-            {
-                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Http;
-                sb.AppendLine( newLine );
-            }
-            File.WriteAllText( file.FullName , sb.ToString() );
-        }
-    }
-    public static void SetToAtlCoreData( DirectoryInfo directory )
-    {
-        if(!directory.Exists) return;
-        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-        foreach ( var file in srcFiles )
-        {
-            var lines = File.ReadAllLines( file.FullName );
-            var sb = new StringBuilder();
-
-            foreach ( var ln in lines )
-            {
-                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core_Data;
-                sb.AppendLine( newLine );
-            }
-            File.WriteAllText( file.FullName , sb.ToString() );
-        }
-    }
-    public static void SetToAtlCore( DirectoryInfo directory )
-    {
-        if(!directory.Exists) return;
-        var srcFiles = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-        foreach ( var file in srcFiles )
-        {
-            var lines = File.ReadAllLines( file.FullName );
-            var sb = new StringBuilder();
-
-            foreach ( var ln in lines )
-            {
-                var newLine = !ln.StartsWith("namespace") ? ln : CommandParams.NamespaceStatements.Atl_Core;
-                sb.AppendLine( newLine );
-            }
-            File.WriteAllText( file.FullName , sb.ToString() );
-        }
-    }
+    await BuildProjectCommands.CreateNewBuild( project, profile,updateVersion: false, validateResult: true );
+    await BuildProjectCommands.AddCommitFiles( project );
+    await BuildProjectCommands.CreateLocalCommitFromFile( project );
+    await BuildProjectCommands.PushLocalCommits( project );
 }
+static async Task CreatePackageAndAddToLocalPackages( BuildProject buildProject , BuildProfile profile )
+{
+    string newVersion = buildProject.GetNextVersion( );
+    buildProject.UpdateProjectFile( newVersion );
+
+    //Create a new nuget file
+    await BuildProjectCommands.CreateLocalNugetPackage( buildProject, profile, true);
+    BuildProjectCommands.CopyNugetFileToLocalPackages( buildProject, profile, newVersion );
+
+}
+
+
+
+
+
 
 static class ExigoEntitiesBuild
 {
@@ -122,7 +59,7 @@ static class ExigoEntitiesBuild
 
         await SqlEntityGenerator.Run( buildConfig );
         SqlEntityGenerator.AdjustNames( buildConfig );
-        SqlEntityGenerator.AddSqlInterfaceSyntax( buildConfig );  
+
     }
 
     public static async Task ProjectBuild()
@@ -134,10 +71,6 @@ static class ExigoEntitiesBuild
 
         await SqlEntityGenerator.Run( buildConfig );
         SqlEntityGenerator.AdjustNames( buildConfig );
-        SqlEntityGenerator.AddSqlInterfaceSyntax( buildConfig );  
+
     }
 }
-
-
-
-#pragma warning restore CS8321 // Local function is declared but never used
