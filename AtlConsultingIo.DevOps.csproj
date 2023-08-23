@@ -8,38 +8,41 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="_templates\**" />
-	  <EmbeddedResource Remove="_templates\**" />
-	  <None Remove="_templates\**" />
+	  <None Include=".config\.commit-msg" />
+	  <None Include=".config\nuget.config" />
+	  <None Include=".generator\dial-codes.json" />
+	  <None Include=".generator\ef-cmd-exigo-dbo-production.json" />
+	  <None Include=".templates\efcommand-template.json" />
+	  <None Include=".templates\namespace-config-template.json" />
 	</ItemGroup>
 	<ItemGroup Label="EF Imports">
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.4">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.10">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.4" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.4">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.10" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.10">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.8.2" />
-		<PackageReference Include="Azure.ResourceManager" Version="1.4.0" />
+		<PackageReference Include="Azure.Identity" Version="1.10.0" />
+		<PackageReference Include="Azure.ResourceManager" Version="1.7.0" />
 		<PackageReference Include="Azure.ResourceManager.Compute" Version="1.1.0" />
-		<PackageReference Include="Azure.ResourceManager.Network" Version="1.1.1" />
-		<PackageReference Include="Azure.ResourceManager.Resources" Version="1.4.0" />
+		<PackageReference Include="Azure.ResourceManager.Network" Version="1.4.0" />
+		<PackageReference Include="Azure.ResourceManager.Resources" Version="1.6.0" />
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-		<PackageReference Include="CliWrap" Version="3.6.0" />
+		<PackageReference Include="CliWrap" Version="3.6.4" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.5.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.6.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="Microsoft.CodeAnalysis" />

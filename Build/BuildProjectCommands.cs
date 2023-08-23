@@ -8,6 +8,13 @@ internal static class BuildProjectCommands
 {
     public static readonly string GitHubPackageSource = "github";
 
+    public static void UpdateNamespaceStatements( DirectoryInfo directory, string newValue )
+    {
+        var files = GetFilesToUpdate( directory, false, null );
+        foreach ( var file in files ) 
+            UpdateFileNamespace( file, "namespace", newValue );
+    }
+
     public static void UpdateNamespaces( BuildProject project , NamespaceUpdateParams @params )
     {
         var srcFiles = GetFilesToUpdate( project.ProjectDirectoryInfo, @params.IgnoreTopLevelFiles , @params.ChildDirectoryFilter );
@@ -17,6 +24,7 @@ internal static class BuildProjectCommands
             return;
         }
 
+        string startsWith = string.IsNullOrEmpty(@params.CurrentValue) ? "namespace" : @params.CurrentValue;
         srcFiles.ForEach( srcFile => UpdateFileNamespace( srcFile, NamespaceStatement(@params.CurrentValue), NamespaceStatement(@params.NewValue) ) );
     }
 
@@ -28,7 +36,7 @@ internal static class BuildProjectCommands
         if( replaceIndex < 0 )
             return;
 
-        lines[replaceIndex ] = replaceValue;    
+        lines[ replaceIndex ] = replaceValue;    
         File.WriteAllLines( file.FullName, lines );
     }
     static List<FileInfo> GetFilesToUpdate(
@@ -104,8 +112,11 @@ internal static class BuildProjectCommands
     public static void CopyNugetFileToLocalPackages( BuildProject project, BuildProfile profile, string version )
     {
         var fileInfo = project.GetNugetFile( profile, version );
-        var targetPath = Path.Combine( CommandParams.DirectoryPaths.LocalPackageDirectory, fileInfo.Name );
 
+        var outDirectory = new DirectoryInfo(Path.Combine( CommandParams.DirectoryPaths.LocalPackageDirectory, project.ProjectDirectoryInfo.Name) );
+        outDirectory.Create();
+
+        var targetPath = Path.Combine( outDirectory.FullName, fileInfo.Name );
         File.WriteAllBytes( targetPath, File.ReadAllBytes( fileInfo.FullName ));
     }
     public static async Task PushPackageToGh( BuildProject project , BuildProfile profile , string version , bool validateResult )

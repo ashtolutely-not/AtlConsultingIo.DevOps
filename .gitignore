@@ -3,11 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-src/CommandParams.cs
+CommandParams.cs
 
-nuget.config*
-.commit-msg
-_config/
+.config/
+.generator/
 
 # User-specific files
 *.rsuser
