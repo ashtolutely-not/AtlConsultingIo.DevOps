@@ -147,6 +147,19 @@ internal record BuildProject
             parts.Length >= 3 ? int.Parse( parts[ 2 ] ) : 0
         );
     }
+
+    public List<FileInfo> GetSourceFiles( string? subdirectoryName )
+    {
+        string path = string.IsNullOrWhiteSpace(subdirectoryName) 
+                        ? ProjectDirectoryInfo.FullName 
+                        : Path.Combine( ProjectDirectoryInfo.FullName, subdirectoryName );
+
+        var searchDirectory = new DirectoryInfo( path );
+        if(  !searchDirectory.Exists )
+            return new List<FileInfo>();
+
+        return searchDirectory.GetFiles("*.cs", SearchOption.AllDirectories)?.ToList() ?? new List<FileInfo>();
+    }
     public static BuildProject Create( string path )
     {
         var dir = new DirectoryInfo( path );

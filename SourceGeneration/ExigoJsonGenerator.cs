@@ -37,13 +37,11 @@ internal static class ExigoJsonGenerator
         foreach ( var itm in list )
             Console.WriteLine( itm );
     }
-    public static void Run( bool writeToProject )
+    public static void Run( string outPath )
     {
         Reset();
 
-        var outDirectory = !Directory.Exists( OutPath( writeToProject ) ) ?
-                        Directory.CreateDirectory( OutPath( writeToProject ) ) :
-                        new DirectoryInfo( OutPath( writeToProject ) );
+        DirectoryInfo outDir = new( outPath );
 
         var srcDirectory = new DirectoryInfo( CommandParams.ExigoClientSourcePath );
         var srcFiles = srcDirectory.GetFiles().ToList();
@@ -51,9 +49,9 @@ internal static class ExigoJsonGenerator
         InitializeNullableTypeNames( srcFiles );
         srcFiles.ForEach( f => RewriteSyntax( f ) );
 
-        WriteEnumFile( outDirectory );
-        WriteInterfaceFile( outDirectory );
-        WriteRecordFiles( outDirectory );
+        WriteEnumFile( outDir );
+        WriteInterfaceFile( outDir );
+        WriteRecordFiles( outDir );
     }
 
 
@@ -141,10 +139,6 @@ internal static class ExigoJsonGenerator
         => fileRoot.DescendantNodes().OfType<EnumDeclarationSyntax>();
     static IEnumerable<InterfaceDeclarationSyntax> GetInterfaceDeclarations( CompilationUnitSyntax fileRoot )
         => fileRoot.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
-
-
-
-
     static PropertyDeclarationSyntax UpdatePropertySyntax( this PropertyDeclarationSyntax propSyntax , string className , SemanticModel model )
     {
         var idTxt = Replacements
@@ -312,10 +306,7 @@ internal static class ExigoJsonGenerator
         _interfaceFile.Append( formatted.ToString() );
         _interfaceFile.AppendLine();
     }
-    static string OutPath( bool writeToProject )
-    => writeToProject ?
-        Path.Combine( CommandParams.AtlConsultingIoProjects.PathBase , "AtlConsultingIo.Exigo", "Api", "Generated" ) :
-        Path.Combine( CommandParams.TestDirectoryPaths.NamedClientEntities , $"ExigoGeneratorTest_{new DateTimeOffset( DateTime.Now ).ToUnixTimeSeconds().ToString()}" );
+
 
     #endregion
 

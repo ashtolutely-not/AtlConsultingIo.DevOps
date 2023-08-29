@@ -16,6 +16,7 @@
 	  <None Include=".templates\namespace-config-template.json" />
 	</ItemGroup>
 	<ItemGroup Label="EF Imports">
+		<PackageReference Include="Dapper" Version="2.0.151" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.10">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -43,6 +44,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.6.0" />
+		<PackageReference Include="Pluralize.NET.Core" Version="1.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="Microsoft.CodeAnalysis" />

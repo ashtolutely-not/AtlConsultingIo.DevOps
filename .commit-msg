@@ -1,0 +1,5 @@
+-- Starting to build out OData controller generation
+-- Rather than leaving it wide open using defaults, or relying on metadata at runtime
+-- I want to build routes to support indexed queries
+-- And I want to build routes that allows for querying related entities
+	-- Still need to check if the relationship is 1:1 or 1:Many
